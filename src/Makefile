@@ -1,4 +1,4 @@
-all: program count_kmers
+all: cv_st_based count_kmers
 
 findCommonKmers: findCommonKmers.cpp
 	g++ -O3 $^ -o findCommonKmers
@@ -9,8 +9,8 @@ KMC/kmc_api/kmc_file.o:
 count_kmers: count_kmers_kmc.cpp KMC/kmc_api/kmc_file.o
 	g++ -std=c++11 -Wall -I./KMC -I./KMC/kmc_counter ./KMC/kmc_api/*.o count_kmers_kmc.cpp -o count_kmers_kmc
 
-program: program.cpp
-	g++ -std=c++11 -DNDEBUG -O3 -I$(CPATH) $^ -o program -L$(LIBRARY_PATH) -lsdsl -ldivsufsort -ldivsufsort64
+cv_st_based: program.cpp
+	g++ -std=c++11 -DNDEBUG -O3 $^ -o cv_st_based -L${LD_LIBRARY_PATH} -lsdsl -ldivsufsort -ldivsufsort64
 
 clean:
 	rm -f findCommonKmers

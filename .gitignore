@@ -1,5 +1,6 @@
 *.exact
 src/findCommonKmers
 src/program
+src/cv_st_based
 *~
 src/count_kmers_kmc
