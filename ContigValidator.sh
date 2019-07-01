@@ -274,12 +274,20 @@ if [ "$kmerskip" = 0 ]; then
     echo "Kmer size = $kmersize"
     echo "Abundance Min = $abundancemin"
 
-    kmc -t4 -ci1 -k$kmersize -fm $multipleGenomeFile mg .
+    kmc -t${threads} -ci1 -k$kmersize -fm $multipleGenomeFile mg .
 
-    echo -e "recall\tprecision" > $tmpKmerOut
+    kmc -t${threads} -ci1 -k${kmersize} -fm ${referenceGenomeArray[0]} h1 .
+    kmc -t${threads} -ci1 -k${kmersize} -fm ${referenceGenomeArray[1]} h2 .
+
+    kmc_tools simple h1 -ci1 h2 -ci1 kmers_subtract s1 -ci1
+    kmc_tools simple h1 -ci1 h2 -ci1 reverse_kmers_subtract s2 -ci1
+    kmc_tools simple s1 -ci1 s2 -ci1 union significant_kmers -ci1
+    rm h1.* h2.* s1.* s2.*
+
+    echo -e "recall\tprecision\ts-recall" > $tmpKmerOut
     for i in "${inputFileArray[@]}"
     do
-        kmc -t4 -ci$abundancemin -k$kmersize -fm $i $i.kmc .
+        kmc -t${threads} -ci$abundancemin -k$kmersize -fm $i $i.kmc .
         kmc_tools simple mg -ci1 $i.kmc -ci1 intersect $i.tp -ci1
         kmc_tools simple mg -ci1 $i.kmc -ci1 kmers_subtract $i.fn -ci1
         kmc_tools simple mg -ci1 $i.kmc -ci1 reverse_kmers_subtract $i.fp -ci1
@@ -288,7 +296,12 @@ if [ "$kmerskip" = 0 ]; then
         fp=$(count_kmers_kmc $i.fp)
         precision=$(bc -l <<< "scale=4; $tp * 100 / ($tp + $fp)")
         recall=$(bc -l <<< "scale=4; $tp * 100 / ($tp + $fn)")
-        echo -e "$recall%\t$precision%" >> $tmpKmerOut
+	kmc_tools simple significant_kmers -ci1 $i.kmc intersect $i.significant -ci1
+	significant_n=$(count_kmers_kmc significant_kmers)
+	significant_i=$(count_kmers_kmc $i.significant)
+	significant_recall=$(bc -l <<< "scale=4; 100 * ($significant_i/$significant_n)")
+	rm -f ${i}.significant*
+        echo -e "$recall%\t$precision%\t$significant_recall%" >> $tmpKmerOut
     done
     paste $alignment $tmpKmerOut > $tmpoutfile
     cat $tmpoutfile > $alignment
@@ -297,7 +310,7 @@ fi
 if [ "$clean" = 0 ]; then
     echo "In clean"
     # rm -f $referenceGenome.*
-    # rm -f *.kmc_pre *.kmc_suf
+    rm -f *.kmc_pre *.kmc_suf
 fi
 
 sane_quit
